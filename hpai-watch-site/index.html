@@ -1,0 +1,929 @@
+<!doctype html><html lang="en"><head><title>HPAI Watch</title><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="HPAI Watch">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#0d6b5e">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+/* Layout: one narrow column, a field-report readout. Summary tiles first, then a dated detection log you filter by state and host. */
+:root{
+  --bg:#f3f5f4; --surface:#ffffff; --ink:#15201d; --muted:#5b6965; --line:#d9e0dd;
+  --accent:#0d6b5e; --accent-ink:#ffffff; --chip:#e6ecea;
+  --c-commercial:#b45309; --c-backyard:#a16207; --c-wild:#1d5fa8; --c-mammal:#7c3aad; --c-dairy:#2f7d32; --c-human:#b42318; --c-other:#5b6965;
+  --m1:#cfe3df; --m2:#9fcbc3; --m3:#5fa99d; --m4:#0d6b5e; --mine:#1a56db; --ctx:#eef2f1;
+  --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0e1513; --surface:#162120; --ink:#e4ece9; --muted:#93a39e; --line:#26332f;
+  --accent:#4fc2ae; --accent-ink:#06201b; --chip:#1e2b28;
+  --c-commercial:#f59e0b; --c-backyard:#d6b13a; --c-wild:#6aa6ec; --c-mammal:#b48be0; --c-dairy:#6cc070; --c-human:#f07a6e; --c-other:#93a39e;
+  --m1:#234a44; --m2:#2f6b62; --m3:#3f9586; --m4:#4fc2ae; --mine:#7ab4ff; --ctx:#1a2523;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1513; --surface:#162120; --ink:#e4ece9; --muted:#93a39e; --line:#26332f;
+  --accent:#4fc2ae; --accent-ink:#06201b; --chip:#1e2b28;
+  --c-commercial:#f59e0b; --c-backyard:#d6b13a; --c-wild:#6aa6ec; --c-mammal:#b48be0; --c-dairy:#6cc070; --c-human:#f07a6e; --c-other:#93a39e;
+  --m1:#234a44; --m2:#2f6b62; --m3:#3f9586; --m4:#4fc2ae; --mine:#7ab4ff; --ctx:#1a2523;
+  color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);-webkit-text-size-adjust:100%}
+.wrap{max-width:640px;margin:0 auto;padding-inline:16px;padding-block:18px 48px;display:flex;flex-direction:column;gap:22px}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+header{display:flex;flex-direction:column;gap:6px}
+.brand{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{font:800 30px/1 var(--f-display);font-stretch:78%;letter-spacing:.01em;margin:0;text-transform:uppercase}
+h1 span{color:var(--accent)}
+.stamp{font:500 12px/1.3 var(--f-mono);color:var(--muted)}
+.stamp b{color:var(--ink);font-weight:500}
+.stale{color:var(--c-human)}
+.modeseg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface);margin-top:8px}
+.modeb{appearance:none;border:0;background:none;color:var(--ink);font:700 15px/1 var(--f-display);font-stretch:85%;letter-spacing:.05em;text-transform:uppercase;padding:12px 10px;min-height:46px;cursor:pointer}
+.modeb + .modeb{border-left:1px solid var(--line)}
+.modeb[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.headline{margin:4px 0 0;font-size:16px;line-height:1.45;text-wrap:pretty;max-width:60ch}
+
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.tile{background:var(--surface);padding:12px 14px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.tile .k{font:600 11px/1.2 var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:6px}
+.dot{width:8px;height:8px;border-radius:2px;flex:none;background:var(--c-other)}
+.tile .v{font:700 28px/1.1 var(--f-display);font-stretch:85%;font-variant-numeric:tabular-nums}
+.tile .s{font-size:12.5px;color:var(--muted);line-height:1.35}
+
+h2{font:700 13px/1.2 var(--f-body);letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0}
+.section{display:flex;flex-direction:column;gap:10px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.scroller{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;margin-inline:-16px;padding-inline:16px}
+.scroller::-webkit-scrollbar{display:none}
+button.chip{appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:500 13px/1 var(--f-body);padding:8px 11px;border-radius:999px;white-space:nowrap;cursor:pointer;display:inline-flex;gap:6px;align-items:center;min-height:34px}
+button.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button.chip .n{font:500 11px/1 var(--f-mono);opacity:.75}
+.mine{font:500 12px/1.3 var(--f-body);color:var(--muted)}
+button.link{appearance:none;background:none;border:0;color:var(--accent);font:600 12.5px/1 var(--f-body);padding:6px 0;cursor:pointer}
+
+.editor{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.editor .grid{display:flex;flex-wrap:wrap;gap:6px}
+.editor button.chip{min-height:30px;padding:6px 9px;font-size:12.5px}
+
+.day{display:flex;flex-direction:column;gap:0}
+.day h3{font:500 12px/1 var(--f-mono);color:var(--muted);margin:14px 0 6px;letter-spacing:.02em}
+.det{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--c-other);border-radius:8px;padding:10px 12px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;margin-bottom:6px}
+.det .where{font-weight:600;min-width:0}
+.det .where .st{font:500 12px/1 var(--f-mono);color:var(--muted);margin-left:4px}
+.det .cnt{font:600 14px/1.3 var(--f-mono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.det .cnt small{display:block;font:400 11px/1.2 var(--f-body);color:var(--muted)}
+.det .what{grid-column:1/-1;font-size:14px;color:var(--ink);min-width:0}
+.det .meta{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;color:var(--muted);align-items:center}
+.tag{font:600 10.5px/1 var(--f-body);letter-spacing:.07em;text-transform:uppercase;padding:3px 6px;border-radius:4px;background:var(--chip);color:var(--ink);display:inline-flex;gap:5px;align-items:center}
+.det.mine-state{box-shadow:inset 0 0 0 1px var(--accent)}
+
+.ev{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--c-wild);border-radius:8px;padding:10px 12px;margin-bottom:6px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px}
+.ev .where{font-weight:600;min-width:0}
+.ev .where .st{font:500 12px/1 var(--f-mono);color:var(--muted);margin-left:4px}
+.ev .cnt{font:600 14px/1.3 var(--f-mono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.ev .cnt small{display:block;font:400 11px/1.2 var(--f-body);color:var(--muted)}
+.ev .what{grid-column:1/-1;font-size:14px;min-width:0}
+.ev .meta{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;color:var(--muted);align-items:center}
+.ev.mine-state{box-shadow:inset 0 0 0 1px var(--accent)}
+.ev.mammal{border-left-color:var(--c-mammal)}
+.signals{display:grid;grid-template-columns:1fr;gap:8px}
+@media (min-width:560px){.signals{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.sig{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.sig-h{font:600 11px/1.2 var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:6px}
+.sig-v{font:700 24px/1.1 var(--f-display);font-stretch:85%;font-variant-numeric:tabular-nums}
+.sig-v small{font:500 13px/1 var(--f-body);color:var(--muted);margin-left:6px;font-stretch:100%}
+.sig-b{font-size:13.5px;line-height:1.45}
+.sig-b.muted{color:var(--muted)}
+.sig .row{gap:4px}
+.pill{font:500 11.5px/1 var(--f-mono);padding:4px 7px;border-radius:5px;background:var(--chip);color:var(--ink)}
+.pill.hot{background:var(--accent);color:var(--accent-ink)}
+.pill.bad{background:var(--c-human);color:#fff}
+.sig .asof{font:500 11px/1.3 var(--f-mono);color:var(--muted)}
+.mapcard{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px 12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.maphead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;font-size:13px}
+.maphead b{font:700 14px/1.2 var(--f-display);font-stretch:85%;text-transform:uppercase;letter-spacing:.03em}
+.slider{display:flex;flex-direction:column;gap:2px;font:500 12px/1 var(--f-mono);color:var(--muted)}
+.slider .sl-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.slider output{font-variant-numeric:tabular-nums;color:var(--ink);text-align:right;white-space:nowrap}
+.range2{position:relative;height:28px;min-width:0}
+.range2 .track{position:absolute;left:11px;right:11px;top:12px;height:4px;border-radius:2px;background:var(--line)}
+.range2 .fill{position:absolute;top:12px;height:4px;border-radius:2px;background:var(--accent)}
+.range2 input[type=range]{position:absolute;left:0;top:0;width:100%;height:28px;margin:0;background:none;pointer-events:none;-webkit-appearance:none;appearance:none;touch-action:pan-y}
+.range2 input[type=range]::-webkit-slider-runnable-track{background:none;border:0}
+.range2 input[type=range]::-moz-range-track{background:none;border:0}
+.range2 input[type=range]::-webkit-slider-thumb{pointer-events:auto;-webkit-appearance:none;appearance:none;width:22px;height:22px;border-radius:50%;background:var(--accent);border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line);margin-top:3px;cursor:grab}
+.range2 input[type=range]::-moz-range-thumb{pointer-events:auto;width:18px;height:18px;border-radius:50%;background:var(--accent);border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line);cursor:grab}
+.range2 input[type=range]:focus-visible{outline:0}
+.range2 input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 3px var(--accent-ink),0 0 0 5px var(--accent)}
+.range2 input[type=range]:focus-visible::-moz-range-thumb{box-shadow:0 0 0 3px var(--accent-ink),0 0 0 5px var(--accent)}
+.mapwrap{width:100%;max-width:100%;aspect-ratio:975/610;min-width:0}
+.mapwrap.ca{aspect-ratio:1/1}
+.mapwrap.eu{aspect-ratio:800/617}
+.ctx{fill:var(--ctx);stroke:var(--surface);pointer-events:none}
+.srcgrp{display:flex;flex-direction:column;gap:6px}
+.srcgrp h3{font:600 11px/1 var(--f-body);letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:10px 0 2px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--surface)}
+.segb{appearance:none;border:0;background:none;color:var(--ink);font:600 12px/1 var(--f-body);padding:7px 11px;cursor:pointer;min-height:30px}
+.segb[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+dialog#mineDlg{border:0;padding:0;background:transparent;max-width:none;width:100%;max-height:100%;margin:auto 0 0;color:var(--ink)}
+dialog#mineDlg::backdrop{background:rgba(10,20,18,.45)}
+.sheet{background:var(--surface);border-top-left-radius:16px;border-top-right-radius:16px;border:1px solid var(--line);max-width:640px;margin:0 auto;padding:14px 16px calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px;max-height:min(86vh,720px)}
+@media (min-width:640px){dialog#mineDlg{margin:auto}.sheet{border-radius:16px}}
+.sheet-h{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.sheet-t{font:700 18px/1.1 var(--f-display);font-stretch:85%;text-transform:uppercase;letter-spacing:.02em;color:var(--ink);margin:0}
+.search{appearance:none;width:100%;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:15px/1.2 var(--f-body);padding:10px 12px;border-radius:10px;min-width:0}
+.sheet-body{overflow-y:auto;min-height:0;border-top:1px solid var(--line);-webkit-overflow-scrolling:touch}
+.grp{font:600 11px/1 var(--f-body);letter-spacing:.09em;text-transform:uppercase;color:var(--muted);padding:12px 0 6px;position:sticky;top:0;background:var(--surface)}
+.opt{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;padding:10px 2px;border:0;border-bottom:1px solid var(--line);background:none;color:var(--ink);font:15px/1.2 var(--f-body);text-align:left;cursor:pointer}
+.opt:last-child{border-bottom:0}
+.opt .box{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--line);display:inline-grid;place-items:center;color:var(--accent-ink);font-size:13px;flex:none}
+.opt[aria-checked="true"] .box{background:var(--accent);border-color:var(--accent)}
+.opt .code{font:500 12px/1 var(--f-mono);color:var(--muted)}
+.opt .cnt{font:500 12px/1 var(--f-mono);color:var(--muted)}
+.opt[hidden]{display:none}
+#openMine[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.gridlabel{width:100%;font:600 10.5px/1 var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+.mapwrap svg{width:100%;height:100%;display:block;touch-action:manipulation}
+.st{fill:var(--chip);stroke:var(--surface);stroke-width:.8;cursor:pointer;transition:fill .15s}
+.st.l1{fill:var(--m1)}.st.l2{fill:var(--m2)}.st.l3{fill:var(--m3)}.st.l4{fill:var(--m4)}
+.st.mine{stroke:var(--mine);stroke-width:2;paint-order:stroke;stroke-linejoin:round}
+.st.sel{stroke:var(--ink);stroke-linejoin:round}
+.st:hover,.st:focus-visible{filter:brightness(.92);outline:0}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.6;pointer-events:none}
+.cty{fill:var(--chip);stroke:var(--surface);stroke-width:.35;cursor:pointer}
+.cty.hit{cursor:pointer}
+.cty.sel{stroke:var(--ink);stroke-width:1}
+.cty.ww{stroke:var(--c-human);stroke-width:.9;stroke-dasharray:1.6 1.2}
+.cty:focus-visible{outline:0;stroke:var(--ink);stroke-width:1}
+.st.nb{fill:var(--ctx)}.st.nb:hover{filter:brightness(.96)}
+.cty.sub{fill-rule:evenodd}
+.pmesh{fill:none;stroke:var(--ink);stroke-opacity:.42;pointer-events:none;stroke-linejoin:round;stroke-linecap:round}
+.cout{fill:none;stroke:var(--ink);stroke-opacity:.75;pointer-events:none;stroke-linejoin:round;stroke-linecap:round}
+.ctyrow .tag2{font-weight:400;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:11.5px;color:var(--muted)}
+.lg{display:inline-flex;align-items:center;gap:5px}
+.lg i{width:10px;height:10px;border-radius:2px;display:inline-block}
+.lg i.ww{border:1.5px dashed var(--c-human);background:none}
+.lg .ramp{display:inline-flex;gap:1px}
+.lg .ramp i{border-radius:0}
+.ctys{display:flex;flex-direction:column;gap:0;border-top:1px solid var(--line);padding-top:6px}
+.ctyrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:7px 0;border-bottom:1px solid var(--line);text-align:left;background:none;border-left:0;border-right:0;border-top:0;color:var(--ink);font:inherit;cursor:pointer;width:100%}
+.ctyrow:last-child{border-bottom:0}
+.ctyrow .nm{font-weight:600}
+.ctyrow .dots{display:flex;gap:3px;align-items:center;justify-content:flex-end}
+.ctyrow .dots i{width:9px;height:9px;border-radius:2px;display:inline-block}
+.ctyrow .dots i.ww{border:1.5px dashed var(--c-human);background:none;width:7px;height:7px}
+.ctyrow .sub{grid-column:1/-1;font-size:12.5px;color:var(--muted)}
+.ctyrow[aria-pressed="true"]{background:var(--chip);margin:0 -12px;padding-inline:12px;width:auto;border-radius:0}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:10px;padding:18px;color:var(--muted);font-size:14px}
+.empty b{color:var(--ink)}
+.notes{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.sources{display:flex;flex-direction:column;gap:6px;font-size:14px}
+footer{font-size:12px;color:var(--muted);line-height:1.5;border-top:1px solid var(--line);padding-top:14px}
+@media (min-width:560px){.tiles{grid-template-columns:repeat(4,minmax(0,1fr))}.tiles.six{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (prefers-reduced-motion:no-preference){.det{animation:in .25s ease-out both}@keyframes in{from{transform:translateY(3px);opacity:.6}to{transform:none;opacity:1}}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <h1>HPAI <span>Watch</span></h1>
+      <div class="row" style="gap:10px">
+        <div class="stamp" id="stamp">Loading latest report…</div>
+        <button type="button" class="chip" id="openMine" aria-haspopup="dialog" aria-controls="mineDlg">★ My states</button>
+      </div>
+    </div>
+    <div class="modeseg" role="group" aria-label="Region">
+      <button type="button" class="modeb" data-mode="na" aria-pressed="true">US / Canada</button>
+      <button type="button" class="modeb" data-mode="eu" aria-pressed="false">EU / UK</button>
+    </div>
+    <p class="headline" id="headline">Recent H5N1 detections from USDA APHIS, CDC, CFIA, the EU's ADIS, UK APHA and state, provincial and national agencies, refreshed every morning.</p>
+  </header>
+
+  <div class="tiles" id="tiles" aria-label="Last 30 days at a glance">
+    <div class="tile"><div class="k"><i class="dot" style="background:var(--c-commercial)"></i>Poultry flocks</div><div class="v">–</div><div class="s">Last 30 days</div></div>
+    <div class="tile"><div class="k"><i class="dot" style="background:var(--c-dairy)"></i>Dairy herds</div><div class="v">–</div><div class="s">Last 30 days</div></div>
+    <div class="tile"><div class="k"><i class="dot" style="background:var(--c-wild)"></i>Wild birds</div><div class="v">–</div><div class="s">Recent detections</div></div>
+    <div class="tile"><div class="k"><i class="dot" style="background:var(--c-human)"></i>Human cases</div><div class="v">–</div><div class="s">U.S. since 2024</div></div>
+  </div>
+
+  <section class="section" aria-labelledby="map-h">
+    <div class="row" style="justify-content:space-between">
+      <h2 id="map-h">Map</h2>
+      <div class="row" id="mapCtl"><button class="link" id="mapBack" type="button" hidden>‹ Back</button><div class="seg" role="group" aria-label="Country"><button type="button" class="segb" data-country="US" aria-pressed="true">US</button><button type="button" class="segb" data-country="CA" aria-pressed="false">Canada</button></div></div>
+    </div>
+    <div class="mapcard">
+      <div class="maphead" id="mapHead"><b>Last 100 days</b><span class="mine">Tap a state for county detail</span></div>
+      <div class="slider"><div class="sl-h"><span id="winLabel">Window</span><output for="dayFrom dayTo" id="daysOut">100 days</output></div><div class="range2" role="group" aria-labelledby="winLabel"><div class="track"></div><div class="fill" id="winFill"></div><input type="range" id="dayFrom" min="1" max="100" step="1" value="1" aria-label="Window start (oldest day)"><input type="range" id="dayTo" min="1" max="100" step="1" value="100" aria-label="Window end (newest day)"></div></div>
+      <div class="mapwrap"><svg id="map" viewBox="0 0 975 610" role="img" aria-label="Map of recent HPAI detections" preserveAspectRatio="xMidYMid meet"></svg></div>
+      <div class="legend" id="legend">
+        <span class="lg"><i style="background:var(--c-commercial)"></i>Commercial</span>
+        <span class="lg"><i style="background:var(--c-backyard)"></i>Backyard</span>
+        <span class="lg"><i style="background:var(--c-dairy)"></i>Dairy</span>
+        <span class="lg"><i style="background:var(--c-wild)"></i>Wild bird</span>
+        <span class="lg"><i style="background:var(--c-mammal)"></i>Mammal</span>
+        <span class="lg"><i class="ww"></i>Wastewater H5</span>
+      </div>
+      <div id="countyList" hidden></div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="log-h">
+    <div class="row" style="justify-content:space-between">
+      <h2 id="log-h">Detection log</h2>
+      <span class="mine" id="mineLabel"></span>
+    </div>
+    <div class="scroller" id="stateChips" role="group" aria-label="Filter by state"></div>
+    <div class="scroller" id="catChips" role="group" aria-label="Filter by host"></div>
+    <div class="row"><button class="link" id="editMine" type="button">Edit my states</button></div>
+    <div id="log"><div class="empty"><b>Waiting for the first report.</b> Detections show up here once the morning update runs: date, county, host and how many birds or animals were affected.</div></div>
+  </section>
+
+  <section class="section" aria-labelledby="events-h">
+    <div class="row" style="justify-content:space-between">
+      <h2 id="events-h">Wildlife die-offs</h2>
+      <a class="mine" id="whispersLink" href="https://whispers.usgs.gov/home" target="_blank" rel="noopener">Open WHISPers</a>
+    </div>
+    <div id="events"><div class="empty"><b>No mortality events loaded yet.</b> Wild bird and mammal die-off events reported by wildlife agencies, by place and species, appear here as they're found.</div></div>
+  </section>
+
+  <section class="section" aria-labelledby="sig-h">
+    <h2 id="sig-h">Early signals</h2>
+    <div class="signals" id="signals">
+      <div class="sig"><div class="sig-h"><i class="dot" style="background:var(--c-human)"></i>Wastewater H5 · CDC</div><div class="sig-b muted">Waiting for the first update.</div></div>
+      <div class="sig"><div class="sig-h"><i class="dot" style="background:var(--c-dairy)"></i>Milk testing · USDA NMTS</div><div class="sig-b muted">Waiting for the first update.</div></div>
+      <div class="sig"><div class="sig-h"><i class="dot" style="background:var(--c-human)"></i>Exposed people · CDC</div><div class="sig-b muted">Waiting for the first update.</div></div>
+      <div class="sig"><div class="sig-h"><i class="dot" style="background:var(--c-wild)"></i>Wild bird sampling · APHIS</div><div class="sig-b muted">Waiting for the first update.</div></div>
+      <div class="sig"><div class="sig-h"><i class="dot" style="background:var(--c-commercial)"></i>Canada · CFIA / CWHC</div><div class="sig-b muted">Waiting for the first update.</div></div>
+      <div class="sig"><div class="sig-h"><i class="dot" style="background:var(--c-wild)"></i>EU · ADIS / EFSA</div><div class="sig-b muted">Waiting for the first update.</div></div>
+      <div class="sig"><div class="sig-h"><i class="dot" style="background:var(--c-backyard)"></i>UK · APHA / Defra</div><div class="sig-b muted">Waiting for the first update.</div></div>
+    </div>
+  </section>
+
+  <section class="section" id="notesSec" hidden aria-labelledby="notes-h">
+    <h2 id="notes-h">Worth knowing</h2>
+    <ul class="notes" id="notes"></ul>
+  </section>
+
+  <section class="section" aria-labelledby="src-h">
+    <h2 id="src-h">Primary sources</h2>
+    <div class="sources">
+      <div class="srcgrp" data-mode="na"><h3>United States</h3>
+        <a href="https://www.aphis.usda.gov/livestock-poultry-disease/avian/avian-influenza/hpai-detections/commercial-backyard-flocks" target="_blank" rel="noopener">USDA APHIS · Commercial and backyard flocks</a>
+        <a href="https://www.aphis.usda.gov/livestock-poultry-disease/avian/avian-influenza/hpai-detections/wild-birds" target="_blank" rel="noopener">USDA APHIS · Wild birds</a>
+        <a href="https://www.aphis.usda.gov/livestock-poultry-disease/avian/avian-influenza/hpai-detections/mammals" target="_blank" rel="noopener">USDA APHIS · Mammals</a>
+        <a href="https://www.aphis.usda.gov/livestock-poultry-disease/avian/avian-influenza/hpai-detections/livestock" target="_blank" rel="noopener">USDA APHIS · Livestock (dairy)</a>
+        <a href="https://www.aphis.usda.gov/livestock-poultry-disease/avian/avian-influenza/hpai-detections/livestock/nmts/faq" target="_blank" rel="noopener">USDA APHIS · National Milk Testing Strategy</a>
+        <a href="https://www.cdc.gov/bird-flu/situation-summary/index.html" target="_blank" rel="noopener">CDC · H5 bird flu current situation</a>
+        <a href="https://www.cdc.gov/bird-flu/h5-monitoring/index.html" target="_blank" rel="noopener">CDC · A(H5) surveillance and human monitoring</a>
+        <a href="https://www.cdc.gov/nwss/rv/wwd-h5.html" target="_blank" rel="noopener">CDC · Wastewater data for A(H5)</a>
+        <a href="https://whispers.usgs.gov/home" target="_blank" rel="noopener">USGS NWHC · WHISPers wildlife mortality events</a>
+      </div>
+      <div class="srcgrp" data-mode="na"><h3>Canada</h3>
+        <a href="https://inspection.canada.ca/en/animal-health/terrestrial-animals/diseases/reportable/avian-influenza/latest-bird-flu-situation/status-ongoing-avian-influenza-response" target="_blank" rel="noopener">CFIA · Status of ongoing response by province</a>
+        <a href="https://inspection.canada.ca/en/animal-health/terrestrial-animals/diseases/reportable/avian-influenza/latest-bird-flu-situation/investigations-and-orders" target="_blank" rel="noopener">CFIA · Current investigations and orders</a>
+        <a href="https://cwhc-rcsf.ca/avian_influenza.php" target="_blank" rel="noopener">CWHC · Wild bird AI surveillance</a>
+        <a href="https://www.canada.ca/en/public-health/services/diseases/avian-influenza-h5n1.html" target="_blank" rel="noopener">PHAC · Avian influenza A(H5N1) in people</a>
+      </div>
+      <div class="srcgrp" data-mode="eu"><h3>European Union</h3>
+        <a href="https://webgate.ec.europa.eu/tracesnt/adis/public/notification/outbreaks-weekly-report" target="_blank" rel="noopener">European Commission · ADIS weekly outbreak report</a>
+        <a href="https://shiny-sta-pub.ages.at/ADIS/ADIS_report_AI_EN.pdf" target="_blank" rel="noopener">AGES (Austria) · Weekly analysis of ADIS avian influenza data</a>
+        <a href="https://eurlaidata.izsvenezie.it/epidemio.php" target="_blank" rel="noopener">EU Reference Laboratory · Avian influenza data portal</a>
+        <a href="https://www.efsa.europa.eu/en/topics/topic/avian-influenza" target="_blank" rel="noopener">EFSA / ECDC / EURL · Quarterly avian influenza overviews</a>
+        <a href="https://www.ecdc.europa.eu/en/avian-influenza" target="_blank" rel="noopener">ECDC · Avian influenza in people</a>
+      </div>
+      <div class="srcgrp" data-mode="eu"><h3>United Kingdom</h3>
+        <a href="https://www.gov.uk/guidance/bird-flu-avian-influenza-latest-situation-in-england" target="_blank" rel="noopener">Defra / APHA · Latest situation in England</a>
+        <a href="https://www.gov.uk/animal-disease-cases-england" target="_blank" rel="noopener">Defra / APHA · Bird flu cases and zones in England</a>
+        <a href="https://www.gov.uk/government/publications/avian-influenza-in-wild-birds" target="_blank" rel="noopener">APHA · HPAI findings in wild birds (Great Britain)</a>
+        <a href="https://www.gov.scot/publications/avian-influenza-outbreaks/" target="_blank" rel="noopener">Scottish Government · Avian influenza outbreaks</a>
+        <a href="https://www.gov.wales/avian-influenza-bird-flu" target="_blank" rel="noopener">Welsh Government · Avian influenza</a>
+        <a href="https://www.daera-ni.gov.uk/articles/avian-influenza-ai" target="_blank" rel="noopener">DAERA · Avian influenza (Northern Ireland)</a>
+      </div>
+      <div class="srcgrp"><h3>News</h3>
+        <a href="https://www.cidrap.umn.edu/avian-influenza-bird-flu" target="_blank" rel="noopener">CIDRAP · Avian influenza news</a>
+      </div>
+    </div>
+  </section>
+
+  <dialog id="mineDlg" aria-labelledby="mineTitle">
+    <form method="dialog" class="sheet">
+      <div class="sheet-h">
+        <div><h2 id="mineTitle" class="sheet-t">My states, provinces &amp; countries</h2><div class="mine" id="mineCount"></div></div>
+        <button type="submit" class="chip" value="close" aria-label="Done">Done</button>
+      </div>
+      <div class="mine">Places you follow are outlined on the map, highlighted in the log, and grouped under the “My states” filter.</div>
+      <input type="search" id="mineSearch" class="search" placeholder="Search states, provinces, countries" autocomplete="off" aria-label="Search states, provinces and countries">
+      <div class="row" style="justify-content:space-between">
+        <div class="row" style="gap:6px" id="presets"><button type="button" class="chip" data-preset="licensed">License states</button><button type="button" class="chip" data-preset="central">Central Flyway</button></div>
+        <button type="button" class="link" id="mineClear">Clear all</button>
+      </div>
+      <div class="sheet-body" id="mineList"></div>
+    </form>
+  </dialog>
+
+  <footer id="foot">Compiled each morning by Claude from the sources above and state, provincial and national announcements. Counts can lag official dashboards by a few days; confirm against APHIS, CFIA, ADIS or APHA before acting on any single entry.</footer>
+</div>
+
+<script>
+(function(){
+  const STATES={AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",DC:"District of Columbia",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"North Carolina",ND:"North Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",PR:"Puerto Rico",RI:"Rhode Island",SC:"South Carolina",SD:"South Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"West Virginia",WI:"Wisconsin",WY:"Wyoming"};
+  const PROV={AB:"Alberta",BC:"British Columbia",MB:"Manitoba",NB:"New Brunswick",NL:"Newfoundland and Labrador",NS:"Nova Scotia",NT:"Northwest Territories",NU:"Nunavut",ON:"Ontario",PE:"Prince Edward Island",QC:"Quebec",SK:"Saskatchewan",YT:"Yukon"};
+  const EURO={AUT:"Austria",BEL:"Belgium",BGR:"Bulgaria",HRV:"Croatia",CYP:"Cyprus",CZE:"Czechia",DNK:"Denmark",EST:"Estonia",FIN:"Finland",FRA:"France",DEU:"Germany",GRC:"Greece",HUN:"Hungary",IRL:"Ireland",ITA:"Italy",LVA:"Latvia",LTU:"Lithuania",LUX:"Luxembourg",MLT:"Malta",NLD:"Netherlands",POL:"Poland",PRT:"Portugal",ROU:"Romania",SVK:"Slovakia",SVN:"Slovenia",ESP:"Spain",SWE:"Sweden",GBR:"United Kingdom",NOR:"Norway",ISL:"Iceland",CHE:"Switzerland"};
+  const US_CODES=new Set(Object.keys(STATES));
+  Object.assign(STATES,PROV,EURO);
+  const isProv=c=>!!PROV[c];
+  const isEuro=c=>!!EURO[c];
+  const isUS=c=>US_CODES.has(c);
+  const regionOf=c=>isProv(c)?"CA":isEuro(c)?"EU":"US";
+  const CODE_LABEL={GBR:"UK"};
+  const codeLabel=c=>CODE_LABEL[c]||c;
+  // Two modes: "na" (US / Canada) and "eu" (EU / UK). Each area code belongs to one.
+  let mode="na";
+  try{const m=localStorage.getItem("hpai.mode");if(m==="na"||m==="eu")mode=m;}catch(e){}
+  if(/^#eu/i.test(location.hash))mode="eu";else if(/^#(na|us)/i.test(location.hash))mode="na";
+  const inMode=c=>mode==="eu"?isEuro(c):!isEuro(c);
+  const mrows=()=>rows.filter(r=>inMode(r.state));
+  const mevents=()=>events.filter(e=>inMode(e.state));
+  const DEFAULT_HEADLINE={na:"Recent H5N1 detections in the United States and Canada from USDA APHIS, CDC, CFIA and state and provincial agencies, refreshed every morning.",eu:"Recent HPAI detections in the EU and UK from ADIS, EFSA, Defra/APHA and national authorities, refreshed every morning."};
+  const CATS={commercial:"Commercial poultry",backyard:"Backyard flock",wild:"Wild bird",mammal:"Mammal",dairy:"Dairy cattle",human:"Human",other:"Other"};
+  const DEFAULT_MINE=["KS","MO","AZ","ID","UT","SD"];
+  const $=id=>document.getElementById(id);
+  const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const fmt=n=>typeof n==="number"&&isFinite(n)?n.toLocaleString("en-US"):"";
+
+  let mine=DEFAULT_MINE.slice();
+  try{const s=JSON.parse(localStorage.getItem("hpai.mine")||"null");if(Array.isArray(s))mine=s.filter(x=>STATES[x]);}catch(e){}
+  let fState="all", fCat="all";
+  try{fState=localStorage.getItem("hpai.fState")||"all";fCat=localStorage.getItem("hpai.fCat")||"all";}catch(e){}
+  const save=(k,v)=>{try{localStorage.setItem(k,typeof v==="string"?v:JSON.stringify(v))}catch(e){}};
+  if(fState!=="all"&&fState!=="mine"&&!inMode(fState))fState="all";
+
+  let summary=null, rows=[];
+
+  function parseDate(s){if(!s)return null;const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(s);return m?new Date(+m[1],+m[2]-1,+m[3]):new Date(s);}
+  function dayLabel(s,approx){const d=parseDate(s);if(!d||isNaN(d))return s||"Date unknown";return approx?"Week of "+d.toLocaleDateString("en-US",{month:"short",day:"numeric"}):d.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});}
+
+  const TILE_SETS={
+    na:[["poultry","commercial","Poultry flocks","Last 30 days"],["dairy","dairy","Dairy herds","Last 30 days"],["wild","wild","Wild birds","Recent detections"],["mammals","mammal","Mammals","Recent detections"],["canada","commercial","Canada farms","Since the fall wave began"],["human","human","Human cases","U.S. since 2024"]],
+    eu:[["poultry","commercial","Poultry outbreaks","Last 30 days"],["captive","backyard","Captive birds","Last 30 days"],["dairy","dairy","Dairy herds","EU and UK"],["wild","wild","Wild birds","Recent detections"],["mammals","mammal","Mammals","Recent detections"],["human","human","Human cases","Europe"]]
+  };
+  function renderSummary(){
+    const src=mode==="eu"?europe:summary;
+    const u=src&&src.updatedAt?new Date(src.updatedAt):null;
+    if(u&&!isNaN(u)){
+      const hrs=(Date.now()-u)/36e5;
+      const when=u.toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
+      $("stamp").innerHTML="Updated <b>"+esc(when)+"</b>"+(hrs>36?' · <span class="stale">overdue</span>':"");
+    } else $("stamp").textContent=src?"":"Loading latest report…";
+    $("headline").textContent=(src&&src.headline)||DEFAULT_HEADLINE[mode];
+    const t=(src&&src.tiles)||{};
+    const tile=(color,label,obj,fallbackSub)=>{
+      obj=obj||{};
+      return '<div class="tile"><div class="k"><i class="dot" style="background:var(--c-'+color+')"></i>'+esc(label)+'</div><div class="v">'+esc(obj.value??"–")+'</div><div class="s">'+esc(obj.sub||fallbackSub)+'</div></div>';
+    };
+    $("tiles").innerHTML=TILE_SETS[mode].map(([key,color,label,sub])=>tile(color,label,t[key],sub)).join("");
+    $("tiles").classList.toggle("six",TILE_SETS[mode].length===6);
+    const notes=src&&Array.isArray(src.notes)?src.notes:[];
+    $("notesSec").hidden=!notes.length;
+    $("notes").innerHTML=notes.map(n=>{
+      if(typeof n==="string")return "<li>"+esc(n)+"</li>";
+      return "<li>"+esc(n.text)+(n.url?' <a href="'+esc(n.url)+'" target="_blank" rel="noopener">Source</a>':"")+"</li>";
+    }).join("");
+  }
+
+  function chip(label,val,cur,count,dataKey){
+    return '<button type="button" class="chip" data-'+dataKey+'="'+esc(val)+'" aria-pressed="'+(cur===val)+'">'+esc(label)+(count!=null?' <span class="n">'+count+'</span>':"")+'</button>';
+  }
+
+  const coLabel=(k,st)=>k==="(whole country)"?(SUB[st]?"No "+SUB[st].unit+" given":"Country-wide"):(subName(st,k)||String(k).replace(/\b\w/g,c=>c.toUpperCase()));
+  function renderFilters(){
+    const R=mrows();
+    const byState={};R.forEach(r=>{if(r.state)byState[r.state]=(byState[r.state]||0)+1;});
+    const mineHere=mine.filter(inMode);
+    const mineCount=R.filter(r=>mine.includes(r.state)).length;
+    let h=chip("All","all",fState,R.length,"state");
+    if(mineHere.length)h+=chip(mode==="eu"?"My countries":"My states","mine",fState,mineCount,"state");
+    Object.keys(byState).sort((a,b)=>byState[b]-byState[a]||a.localeCompare(b)).forEach(s=>{h+=chip(codeLabel(s),s,fState,byState[s],"state");});
+    if(fState!=="all"&&fState!=="mine"&&!byState[fState])h+=chip(codeLabel(fState),fState,fState,0,"state");
+    $("stateChips").innerHTML=h;
+    const byCat={};R.forEach(r=>{const c=CATS[r.category]?r.category:"other";byCat[c]=(byCat[c]||0)+1;});
+    let c=chip("All hosts","all",fCat,null,"cat");
+    Object.keys(CATS).filter(k=>byCat[k]).forEach(k=>{c+=chip(CATS[k],k,fCat,byCat[k],"cat");});
+    $("catChips").innerHTML=c;
+    $("mineLabel").innerHTML=(fCounty&&fState!=="all"&&fState!=="mine")?'<button type="button" class="chip" data-clearco="1" aria-pressed="true">'+esc(coLabel(fCounty,fState))+(isUS(fState)?' Co.':'')+' ×</button>':(mineHere.length?"Following: "+esc(mineHere.map(codeLabel).join(", ")):"");
+    renderMineList();
+  }
+
+  function renderLog(){
+    let list=mrows();
+    if(fState==="mine")list=list.filter(r=>mine.includes(r.state));
+    else if(fState!=="all")list=list.filter(r=>r.state===fState);
+    if(fCat!=="all")list=list.filter(r=>(CATS[r.category]?r.category:"other")===fCat);
+    if(fCounty&&fState!=="all"&&fState!=="mine")list=list.filter(r=>{const ks=placeKeys(r.state,r.county,r.nation);return (ks.length?ks:["(whole country)"]).includes(fCounty);});
+    list.sort((a,b)=>String(b.date||"").localeCompare(String(a.date||""))||((a.period?2:a.dateApprox?1:0)-(b.period?2:b.dateApprox?1:0))||String(a.period||"").localeCompare(String(b.period||""))||String(a.state||"").localeCompare(String(b.state||"")));
+    if(!rows.length){return;}
+    if(!list.length&&fState==="all"&&fCat==="all"){$("log").innerHTML='<div class="empty"><b>No detections logged for '+(mode==="eu"?"the EU and UK":"the US and Canada")+' yet.</b> The morning update adds them as official reports come in.</div>';return;}
+    if(!list.length){
+      const where=fState==="mine"?"your states":fState==="all"?"any state":((fCounty?coLabel(fCounty,fState)+(isUS(fState)?" County, ":", "):"")+(STATES[fState]||fState));
+      $("log").innerHTML='<div class="empty"><b>No recent detections in '+esc(where)+(fCat!=="all"?" for "+esc(CATS[fCat].toLowerCase()):"")+'.</b> The log covers the last 100 days. Pick another filter or check the official sources below.</div>';
+      return;
+    }
+    const groups=[];let cur=null;
+    list.forEach(r=>{const k=r.period?("p|"+r.period+"|"+(r.date||"")):((r.date||"")+(r.dateApprox?"~":""));if(!cur||cur.k!==k){cur={k,d:r.date,a:!!r.dateApprox,p:r.period||null,items:[]};groups.push(cur);}cur.items.push(r);});
+    $("log").innerHTML=groups.map(g=>'<div class="day"><h3>'+esc(g.p?g.p+" · period totals":dayLabel(g.d,g.a))+'</h3>'+g.items.map(item).join("")+'</div>').join("");
+  }
+
+  function item(r){
+    const cat=CATS[r.category]?r.category:"other";
+    const place=r.county?(!isUS(r.state)||/county|parish|borough|municipalit|region|district|\bRM\b/i.test(r.county)?r.county:r.county+" Co."):"";
+    const stName=STATES[r.state]||r.state||"";
+    const cnt=typeof r.count==="number"?'<div class="cnt">'+fmt(r.count)+'<small>'+esc(r.countUnit||"birds")+'</small></div>':'<div class="cnt"></div>';
+    const dateNote=r.period?"total for the period":r.dateApprox?"exact date pending":(r.dateType==="reported"?"reported":"confirmed");
+    return '<article class="det'+(mine.includes(r.state)?" mine-state":"")+'" style="border-left-color:var(--c-'+cat+')">'+
+      '<div class="where">'+esc(place||stName)+(place?'<span class="st">'+esc(codeLabel(r.state||""))+'</span>':"")+'</div>'+cnt+
+      '<div class="what">'+esc(r.what||CATS[cat])+'</div>'+
+      '<div class="meta"><span class="tag"><i class="dot" style="background:var(--c-'+cat+')"></i>'+esc(CATS[cat])+'</span>'+
+      '<span>'+esc(dateNote)+'</span>'+
+      (r.source?'<span>'+(r.url?'<a href="'+esc(r.url)+'" target="_blank" rel="noopener">'+esc(r.source)+'</a>':esc(r.source))+'</span>':"")+
+      '</div></article>';
+  }
+
+  let events=[], signals=null, europe=null;
+  const SIG_US_PH=[...document.querySelectorAll("#signals .sig")].slice(0,5).map(e=>e.outerHTML).join("");
+  [...document.querySelectorAll("#signals .sig")].slice(5).forEach(e=>e.remove());
+
+  function renderEvents(){
+    const list=mevents().sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));
+    if(!list.length){$("events").innerHTML='<div class="empty"><b>No die-off events logged'+(mode==="eu"?" in the EU or UK":"")+' yet.</b> Mass mortality events in wild birds and mammals reported by wildlife agencies appear here, by place and species.</div>';return;}
+    $("events").innerHTML=list.map(e=>{
+      const stName=STATES[e.state]||e.state||"";
+      const place=e.county?(!isUS(e.state)||/county|parish|borough|metro|municipalit|region|district/i.test(e.county)?e.county:e.county+" Co."):"";
+      const cnt=typeof e.count==="number"?'<div class="cnt">'+fmt(e.count)+'<small>'+esc(e.countUnit||"dead")+'</small></div>':'<div class="cnt"></div>';
+      return '<article class="ev'+(mine.includes(e.state)?" mine-state":"")+(e.kind==="mammal"?" mammal":"")+'">'+
+        '<div class="where">'+esc(place||stName)+(place?'<span class="st">'+esc(codeLabel(e.state||""))+'</span>':"")+'</div>'+cnt+
+        '<div class="what">'+esc(e.species||"")+(e.diagnosis?' · '+esc(e.diagnosis):"")+'</div>'+
+        '<div class="meta"><span>'+esc(dayLabel(e.date,e.dateApprox))+(e.endDate?' – '+esc(dayLabel(e.endDate)):"")+'</span>'+
+        (e.status?'<span class="tag">'+esc(e.status)+'</span>':"")+
+        (e.source?'<span>'+(e.url?'<a href="'+esc(e.url)+'" target="_blank" rel="noopener">'+esc(e.source)+'</a>':esc(e.source))+'</span>':"")+
+        '</div></article>';
+    }).join("");
+  }
+
+  function renderSignals(){
+    const s=signals||{};
+    const asof=o=>o&&o.asOf?'<div class="asof">as of '+esc(o.asOf)+'</div>':"";
+    const link=(o,label)=>o&&o.url?' <a href="'+esc(o.url)+'" target="_blank" rel="noopener">'+esc(label||"Source")+'</a>':"";
+    const bigCard=(title,color,o,linkLabel)=>{
+      o=o||{};
+      const pills=o.pills&&typeof o.pills==="object"?o.pills:{};
+      const keys=Object.keys(pills).filter(k=>pills[k]>0).sort((a,b)=>pills[b]-pills[a]).slice(0,12);
+      return '<div class="sig"><div class="sig-h"><i class="dot" style="background:var(--c-'+color+')"></i>'+esc(title)+'</div>'+
+        (o.value!=null?'<div class="sig-v">'+esc(o.value)+(o.valueLabel?'<small>'+esc(o.valueLabel)+'</small>':"")+'</div>':"")+
+        (keys.length?'<div class="row">'+(o.pillsLabel?'<span class="mine">'+esc(o.pillsLabel)+'</span>':"")+keys.map(k=>'<span class="pill'+(mine.includes(k)?" hot":"")+'">'+esc(codeLabel(k))+' '+(typeof pills[k]==="number"?fmt(pills[k]):esc(pills[k]))+'</span>').join("")+'</div>':"")+
+        (Array.isArray(o.lines)?o.lines.map(l=>'<div class="sig-b">'+esc(l)+'</div>').join(""):"")+
+        '<div class="sig-b'+(o.note?"":" muted")+'">'+esc(o.note||"Waiting for the first update.")+link(o,o.urlLabel||linkLabel)+'</div>'+asof(o)+'</div>';
+    };
+    let h="";
+    if(mode==="eu"){
+      const eu=(europe&&europe.eu)||{}, uk=(europe&&europe.uk)||{};
+      const dy=(europe&&europe.dairy)||{};
+      $("signals").innerHTML=bigCard("EU · ADIS / EFSA","wild",eu,"ADIS data")+bigCard("UK · APHA / Defra","backyard",uk,"GOV.UK")+bigCard("Dairy & livestock · EU / UK","dairy",dy,"Source");
+      return;
+    }
+    if(signals){
+    // Wastewater
+    const w=s.wastewater||{};
+    const sites=Array.isArray(w.sites)?w.sites:[];
+    const byState={};sites.forEach(x=>{if(x.state)byState[x.state]=(byState[x.state]||0)+1;});
+    const stList=Object.keys(byState).sort((a,b)=>byState[b]-byState[a]||a.localeCompare(b));
+    h+='<div class="sig"><div class="sig-h"><i class="dot" style="background:var(--c-human)"></i>Wastewater H5 · CDC</div>'+
+      '<div class="sig-v">'+esc(w.detectingSites??"–")+'<small>sites with H5 in 6 wks</small></div>'+
+      (stList.length?'<div class="row">'+stList.map(st=>'<span class="pill'+(mine.includes(st)?" hot":"")+'">'+st+' '+byState[st]+'</span>').join("")+'</div>':"")+
+      '<div class="sig-b'+(w.note?"":" muted")+'">'+esc(w.note||"No detections reported.")+link(w)+'</div>'+asof(w)+'</div>';
+    // Milk
+    const m=s.milk||{};
+    const aff=Array.isArray(m.affected)?m.affected:[];
+    h+='<div class="sig"><div class="sig-h"><i class="dot" style="background:var(--c-dairy)"></i>Milk testing · USDA NMTS</div>'+
+      '<div class="sig-v">'+esc(m.unaffectedCount??"–")+'<small>states unaffected</small></div>'+
+      (aff.length?'<div class="row"><span class="mine">Affected:</span>'+aff.map(st=>'<span class="pill bad">'+esc(st)+'</span>').join("")+'</div>':"")+
+      (mine.filter(isUS).length?'<div class="row"><span class="mine">Mine:</span>'+mine.filter(isUS).map(st=>'<span class="pill'+(aff.includes(st)?" bad":"")+'">'+st+' '+(aff.includes(st)?"affected":"unaffected")+'</span>').join("")+'</div>':"")+
+      '<div class="sig-b'+(m.note?"":" muted")+'">'+esc(m.note||"")+link(m)+'</div>'+asof(m)+'</div>';
+    // Human monitoring
+    const hm=s.humanMonitoring||{};
+    h+='<div class="sig"><div class="sig-h"><i class="dot" style="background:var(--c-human)"></i>Exposed people · CDC</div>'+
+      '<div class="sig-v">'+esc(hm.recentTested??"–")+'<small>tested, past 12 months</small></div>'+
+      '<div class="sig-b">'+(hm.recentMonitored?esc(hm.recentMonitored)+' people monitored after exposure in the past 12 months. ':"")+(hm.totalMonitored?esc(hm.totalMonitored)+' monitored and '+esc(hm.totalTested||"–")+' tested since 2022. ':"")+esc(hm.note||"")+link(hm)+'</div>'+asof(hm)+'</div>';
+    // Surveillance
+    const sv=s.surveillance||{};
+    h+='<div class="sig"><div class="sig-h"><i class="dot" style="background:var(--c-wild)"></i>Wild bird sampling · APHIS</div>'+
+      (sv.value?'<div class="sig-v">'+esc(sv.value)+(sv.valueLabel?'<small>'+esc(sv.valueLabel)+'</small>':"")+'</div>':"")+
+      '<div class="sig-b'+(sv.note?"":" muted")+'">'+esc(sv.note||"Sampling results not yet summarized.")+link(sv,"Dashboard")+'</div>'+asof(sv)+'</div>';
+    // Canada
+    const ca=s.canada||{};
+    const ips=ca.currentIPs&&typeof ca.currentIPs==="object"?ca.currentIPs:{};
+    const ipKeys=Object.keys(ips).filter(k=>ips[k]>0).sort((a,b)=>ips[b]-ips[a]);
+    const wb=ca.wild||{};
+    h+='<div class="sig"><div class="sig-h"><i class="dot" style="background:var(--c-commercial)"></i>Canada · CFIA / CWHC</div>'+
+      '<div class="sig-v">'+esc(ca.totalCurrent??"–")+'<small>premises under quarantine</small></div>'+
+      (ipKeys.length?'<div class="row">'+ipKeys.map(k=>'<span class="pill'+(mine.includes(k)?" hot":"")+'">'+k+' '+ips[k]+'</span>').join("")+'</div>':"")+
+      (wb.h5!=null?'<div class="sig-b">Wild birds '+esc(wb.year||"")+': '+esc(wb.h5)+' H5-positive of '+esc(wb.tested||"–")+' dead birds tested'+(wb.top?' ('+esc(wb.top)+')':"")+'.'+(wb.url?' <a href="'+esc(wb.url)+'" target="_blank" rel="noopener">CWHC</a>':"")+'</div>':"")+
+      '<div class="sig-b'+(ca.note?"":" muted")+'">'+esc(ca.note||"")+link(ca,"CFIA")+'</div>'+asof(ca)+'</div>';
+    } else { h=SIG_US_PH; }
+    $("signals").innerHTML=h;
+  }
+
+  /* ---------- Map ---------- */
+  let geo=null, counties=null, countiesLoading=null, mapState=null, fCounty=null, caGeo=null, caLoading=null;
+  let naCountry="US";
+  try{const c=localStorage.getItem("hpai.country");if(c==="CA"||c==="US")naCountry=c;}catch(e){}
+  let country=mode==="eu"?"EU":naCountry;
+  const SEV={commercial:5,dairy:4,backyard:3,mammal:2,human:6,wild:1,other:0};
+  const svgNS="http://www.w3.org/2000/svg";
+  const normCo=s=>String(s||"").toLowerCase().replace(/\b(rural municipality of|municipality of|municipal district of|county of|regional district of|rm of|md of|r\.?m\.?)\b/g,"").replace(/\b(county|co\.?|parish|borough|census area|municipality|city and borough)\b/g,"").replace(/\(.*?\)/g,"").replace(/[^a-z\s\/\-]/g,"").replace(/\s+/g," ").trim();
+  const AREAS={"MN|twin cities metro":["hennepin","ramsey","dakota","anoka","washington","scott","carver"],"MN|twin cities":["hennepin","ramsey","dakota","anoka","washington","scott","carver"],"TX|amarillo area":["potter","randall"],"TX|panhandle":["potter","randall","deaf smith","castro","parmer","hartley","moore","sherman","dallam","hansford","ochiltree","lipscomb","hemphill","roberts","hutchinson","oldham","carson","gray","wheeler","collingsworth","donley","armstrong","swisher","briscoe","hall","childress"]};
+  function countyKeys(s,st){const raw=normCo(s);if(st&&AREAS[st+"|"+raw])return AREAS[st+"|"+raw];const out=[];String(s||"").replace(/\(.*?\)/g," ").split(isUS(st)?/[\/,;]/:/\//).forEach(p=>{const k=normCo(p);if(k&&!out.includes(k))out.push(k);});const known=out.filter(k=>k!=="unknown");return known.length?known:out;}
+  // Per-county counts written as "McPherson (15), Barton (3)": key -> count.
+  // Bare names count 1 when others carry counts; with no counts at all, the total is split evenly.
+  function coWeights(s,total){const out={},bare=[];let any=false;String(s||"").split(/[,;]/).forEach(p=>{const m=/^(.*?)\((\d+)\)\s*$/.exec(p.trim());if(m){const k=normCo(m[1]);if(k){out[k]=+m[2];any=true;}}else{const k=normCo(p);if(k)bare.push(k);}});const n=bare.length;bare.forEach(k=>{if(out[k]==null)out[k]=any?1:Math.max(1,Math.round((total||n)/n));});return out;}
+  // Europe: first-level subunits (UK nations, French départements, German states, ...), one file per country, loaded on demand.
+  const SUB_CODES=new Set("GBR FRA DEU ITA ESP POL NLD BEL AUT CHE DNK SWE NOR FIN EST LTU IRL HUN CZE SVK SVN HRV BGR ROU GRC PRT CYP ISL MLT".split(" "));
+  const SUB={}, subLoading={}, subFailed={};
+  const nrmE=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/æ/g,"ae").replace(/[øö]/g,"o").replace(/ß/g,"ss").replace(/œ/g,"oe").replace(/ł/g,"l").replace(/[đð]/g,"d").replace(/þ/g,"th").replace(/ı/g,"i").replace(/['’‘`´]/g,"").replace(/[^a-z0-9]+/g," ").replace(/\b(region|regione|regiao|regio|county|co|province|provincia|provincie|provinz|voivodeship|wojewodztwo|departement|department|district|distrito|oblast|lan|megye|judet|judetul|canton|kanton|cantone|bundesland|land|state|of|the|maakond|maakunta|kraj|zupanija|apskritis|fylke|amt|and|et|e|und|y|og|kai|och)\b/g," ").replace(/\s+/g," ").trim();
+  const lcE=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+  function loadSub(code){
+    if(SUB[code]||subFailed[code]||!SUB_CODES.has(code))return;
+    subLoading[code]=subLoading[code]||fetch("eu-sub/"+code+".json").then(r=>{if(!r.ok)throw new Error(String(r.status));return r.json();}).then(j=>{
+      j.exact={};Object.keys(j.units).forEach(k=>{const n=j.units[k].n;j.exact[lcE(n)]=k;j.exact[lcE(n.replace(/\s*\(.*?\)\s*/g," "))]=k;});
+      SUB[code]=j;renderFilters();renderLog();renderMap();
+    }).catch(()=>{subFailed[code]=1;renderMap();});
+  }
+  // Which subunit(s) a European entry belongs to: the UK "nation" field first, then the place text.
+  function subKeys(st,co,nation){
+    const T=SUB[st];if(!T)return [];
+    const one=x=>{if(!x||!String(x).trim())return null;return T.exact[lcE(x)]||T.alias[nrmE(x)]||null;};
+    if(nation){const k=one(nation);if(k)return [k];}
+    const s=String(co||"");if(!s.trim())return [];
+    const noPar=s.replace(/\(.*?\)/g," ");
+    let k=one(s)||one(noPar);if(k)return [k];
+    const pars=(s.match(/\(([^)]*)\)/g)||[]).map(x=>x.slice(1,-1));
+    for(const p of pars){k=one(p);if(k)return [k];}
+    const out=[];noPar.split(/[,;\/&+]|\s[-–]\s|\band\b/).forEach(p=>{const q=one(p);if(q&&!out.includes(q))out.push(q);});
+    return out;
+  }
+  function placeKeys(st,co,nation){
+    if(isEuro(st)&&SUB[st]){const ks=subKeys(st,co,nation);if(ks.length)return ks.map(k=>"@"+k);}
+    return countyKeys(co,st);
+  }
+  const subName=(st,k)=>(k&&String(k).charAt(0)==="@"&&SUB[st]&&SUB[st].units[String(k).slice(1)])?SUB[st].units[String(k).slice(1)].n:null;
+  // Window: two thumbs on a 100-day track. Value v stands for the day (100 - v) days ago: 100 = today, 1 = 99 days ago.
+  let WIN_FROM=1, WIN_TO=100;
+  try{
+    const w=(localStorage.getItem("hpai.win")||"").split(",").map(x=>parseInt(x,10));
+    if(w.length===2&&w[0]>=1&&w[1]<=100&&w[0]<=w[1]){WIN_FROM=w[0];WIN_TO=w[1];}
+    else{const v=parseInt(localStorage.getItem("hpai.days100"),10);if(v>=1&&v<=100)WIN_FROM=101-v;}
+  }catch(e){}
+  const WINDOW_LEN=()=>WIN_TO-WIN_FROM+1;
+  const dayAt=v=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-(100-v));return d;};
+  const fmtD=d=>d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
+  const winRange=()=>fmtD(dayAt(WIN_FROM))+" – "+fmtD(dayAt(WIN_TO));
+  // "Last 30 days" when the window ends today; otherwise the dates it spans.
+  const winHead=lower=>WIN_TO===100?((lower?"last ":"Last ")+WINDOW_LEN()+(WINDOW_LEN()===1?" day":" days")):winRange();
+  const winNone=()=>WIN_TO===100?"Nothing reported in the last "+WINDOW_LEN()+(WINDOW_LEN()===1?" day":" days"):"Nothing reported "+winRange();
+  function syncWindowUI(){
+    $("dayFrom").value=WIN_FROM;$("dayTo").value=WIN_TO;
+    const n=WINDOW_LEN();
+    $("daysOut").textContent=WIN_TO===100?(n+(n===1?" day":" days")):(n===1?fmtD(dayAt(WIN_FROM)):winRange());
+    $("daysOut").title=winRange();
+    // the filled part of the track sits between the two thumbs (thumb radius 11px)
+    const lo=(WIN_FROM-1)/99, hi=(WIN_TO-1)/99;
+    $("winFill").style.left="calc(11px + ("+(lo*100).toFixed(2)+"% - "+(lo*22).toFixed(2)+"px))";
+    $("winFill").style.width="calc(("+((hi-lo)*100).toFixed(2)+"%) - "+((hi-lo)*22).toFixed(2)+"px)";
+    $("dayFrom").setAttribute("aria-valuetext",fmtD(dayAt(WIN_FROM)));$("dayTo").setAttribute("aria-valuetext",fmtD(dayAt(WIN_TO)));
+    // whichever thumb is nearer the far edge goes on top, so the two never trap each other at an end
+    $("dayTo").style.zIndex=WIN_TO<=WIN_FROM+2&&WIN_FROM>50?1:3;$("dayFrom").style.zIndex=2;
+  }
+  syncWindowUI();
+  // A date counts if it falls inside the window, inclusive at both ends.
+  function recent(d){const t=parseDate(d);if(!t||isNaN(t))return false;return t>=dayAt(WIN_FROM)&&t<=dayAt(WIN_TO);}
+  let sliderTimer=null;
+  function onWindowInput(e){
+    let a=parseInt($("dayFrom").value,10)||1, b=parseInt($("dayTo").value,10)||100;
+    if(a>b){if(e.target.id==="dayFrom")b=a;else a=b;}
+    WIN_FROM=a;WIN_TO=b;
+    syncWindowUI();
+    save("hpai.win",WIN_FROM+","+WIN_TO);
+    clearTimeout(sliderTimer);sliderTimer=setTimeout(renderMap,40);
+  }
+  $("dayFrom").addEventListener("input",onWindowInput);
+  $("dayTo").addEventListener("input",onWindowInput);
+
+  // Per-state and per-county rollups from rows, events and wastewater sites.
+  function rollup(){
+    const byState={}, byCounty={};
+    // An entry that aggregates several wild-bird detections ("31 detections") counts as that many.
+    const weight=it=>(it&&typeof it.count==="number"&&it.count>0&&/^(detections?|outbreaks?|herds?|flocks?)\b/i.test(String(it.countUnit||"").trim()))?Math.round(it.count):1;
+    const bump=(st,co,cat,kind,item)=>{
+      if(!st)return;
+      const w=kind==="det"?weight(item):1;
+      const S=byState[st]||(byState[st]={n:0,ev:0,cats:{},ww:0});
+      if(kind==="ww"){S.ww++;}else if(kind==="ev"){S.ev++;S.cats[cat]=(S.cats[cat]||0)+1;}else{S.n+=w;S.cats[cat]=(S.cats[cat]||0)+w;}
+      const keys=placeKeys(st,co,item&&item.nation);
+      const cw=(kind==="det"&&isUS(st)&&/[,;]/.test(String(co||"")))?coWeights(co,weight(item)):{};
+      (keys.length?keys:["(whole country)"]).forEach(k=>{
+        if(!co&&isUS(st))return;
+        const w=kind==="det"?(cw[k]!=null?cw[k]:weight(item)):1;
+        const C=byCounty[st+"|"+k]||(byCounty[st+"|"+k]={st,key:k,label:subName(st,k)||(co?(String(co).replace(/\s*\(.*?\)\s*/g," ").trim()||co):((STATES[st]||st)+(SUB[st]?" (no "+SUB[st].unit+" given)":" (country-wide)"))),n:0,ev:0,cats:{},ww:0,items:[]});
+        if(kind==="ww"){C.ww++;}else if(kind==="ev"){C.ev++;C.cats[cat]=(C.cats[cat]||0)+1;}else{C.n+=w;C.cats[cat]=(C.cats[cat]||0)+w;}
+        C.items.push(item);
+      });
+    };
+    rows.filter(r=>recent(r.date)).forEach(r=>bump(r.state,r.county,CATS[r.category]?r.category:"other","det",r));
+    events.filter(e=>recent(e.date)||e.status==="ongoing").forEach(e=>bump(e.state,e.county,e.kind==="mammal"?"mammal":"wild","ev",e));
+    const sites=(signals&&signals.wastewater&&Array.isArray(signals.wastewater.sites))?signals.wastewater.sites:[];
+    sites.filter(s=>!s.date||recent(s.date)).forEach(s=>bump(s.state,s.county,null,"ww",s));
+    return {byState,byCounty};
+  }
+  function topCat(cats){let best=null;Object.keys(cats).forEach(c=>{if(best===null||SEV[c]>SEV[best])best=c;});return best;}
+  function lvl(n){return n>=8?4:n>=4?3:n>=2?2:n>=1?1:0;}
+
+  function setCountryUI(){
+    $("map").parentElement.style.aspectRatio="";
+    document.querySelectorAll(".segb").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.country===country)));
+    const seg=document.querySelector("#mapCtl .seg");if(seg)seg.hidden=(mode==="eu");
+    $("map").parentElement.classList.toggle("ca",country==="CA");
+    $("map").parentElement.classList.toggle("eu",country==="EU");
+  }
+  function renderMap(){
+    const svg=$("map");if(!svg)return;
+    setCountryUI();
+    const R=rollup();
+    if(country==="CA"||country==="EU"){renderRegion(R,country);return;}
+    if(!geo)return;
+    if(mapState){renderStateMap(R);return;}
+    svg.setAttribute("viewBox","0 0 975 610");
+    let h="";
+    Object.keys(geo.states).sort((a,b)=>(mine.includes(a)?1:0)-(mine.includes(b)?1:0)).forEach(ab=>{
+      const S=R.byState[ab]||{n:0,ev:0,ww:0};
+      h+='<path class="st l'+lvl(S.n+(S.ev||0))+(mine.includes(ab)?" mine":"")+'" d="'+geo.states[ab].d+'" data-st="'+ab+'" tabindex="0" role="button" aria-label="'+esc(geo.states[ab].name)+': '+S.n+' detection'+(S.n===1?"":"s")+(S.ww?', '+S.ww+' wastewater site'+(S.ww===1?"":"s"):"")+'"><title>'+esc(geo.states[ab].name)+' · '+S.n+(S.ww?' · WW '+S.ww:"")+'</title></path>';
+    });
+    h='<path class="mesh" d="'+geo.mesh+'"/>'+h;
+    // wastewater markers at state centroid-ish (bbox center), small rings
+    Object.keys(R.byState).forEach(ab=>{
+      const S=R.byState[ab];const g=geo.states[ab];if(!S.ww||!g)return;
+      const [x0,y0,x1,y1]=g.bbox;const cx=(x0+x1)/2,cy=(y0+y1)/2;
+      h+='<circle cx="'+cx+'" cy="'+cy+'" r="'+(5+Math.min(S.ww,20)*0.6)+'" fill="none" stroke="var(--c-human)" stroke-width="1.8" stroke-dasharray="3 2" pointer-events="none"/>';
+    });
+    svg.innerHTML=h;
+    const tot=Object.keys(R.byState).filter(k=>geo.states[k]).reduce((a,k)=>a+R.byState[k].n,0);
+    $("mapHead").innerHTML='<b>'+esc(winHead())+' · '+tot+' detection'+(tot===1?'':'s')+'</b><span class="mine">Tap a state for county detail</span>';
+    $("mapBack").hidden=true;$("countyList").hidden=true;
+    $("legend").innerHTML='<span class="lg"><span class="ramp"><i style="background:var(--chip)"></i><i style="background:var(--m1)"></i><i style="background:var(--m2)"></i><i style="background:var(--m3)"></i><i style="background:var(--m4)"></i></span>0 → 8+ detections</span><span class="lg"><i class="ww" style="border-radius:50%"></i>Wastewater H5 sites</span><span class="lg"><i style="background:none;border:2px solid var(--mine)"></i>My states</span>';
+  }
+
+  function renderStateMap(R){
+    const svg=$("map");const ab=mapState;const g=geo.states[ab];if(!g)return;
+    const [x0,y0,x1,y1]=g.bbox;const pad=Math.max(x1-x0,y1-y0)*0.06;
+    // fit the state's box into the 975x610 frame, centered
+    let w=(x1-x0)+pad*2,hh=(y1-y0)+pad*2;const ar=975/610;
+    if(w/hh<ar)w=hh*ar;else hh=w/ar;
+    const vx=(x0+x1)/2-w/2,vy=(y0+y1)/2-hh/2;
+    svg.setAttribute("viewBox",[vx,vy,w,hh].map(v=>Math.round(v*10)/10).join(" "));
+    const C=counties&&counties[ab];
+    let h="";
+    if(!C){
+      h+='<path class="st l0" d="'+g.d+'"/>';
+      svg.innerHTML=h;
+      $("mapHead").innerHTML='<b>'+esc(g.name)+'</b><span class="mine">Loading counties…</span>';
+      return;
+    }
+    const sw=Math.max(0.3,w/975*0.8);
+    const list=[];
+    Object.keys(C).forEach(fips=>{
+      const c=C[fips];const key=normCo(c.n);const hit=R.byCounty[ab+"|"+key];
+      let cls="cty",fill="";
+      if(hit){cls+=" hit";const tc=topCat(hit.cats);if(tc)fill=' style="fill:var(--c-'+tc+')"';if(hit.ww)cls+=" ww";if(fCounty===key)cls+=" sel";list.push(Object.assign({name:c.n},hit));}
+      h+='<path class="'+cls+'"'+fill+' stroke-width="'+sw+'" d="'+c.d+'" data-co="'+esc(key)+'" tabindex="'+(hit?"0":"-1")+'" role="button" aria-label="'+esc(c.n)+(hit?': '+hit.n+' detection'+(hit.n===1?"":"s")+(hit.ww?', wastewater H5':""):"")+'"><title>'+esc(c.n)+(hit?' · '+hit.n+(hit.ww?' · WW':""):"")+'</title></path>';
+    });
+    svg.innerHTML=h;
+    // counties in the data we couldn't place on the map (e.g. "Twin Cities metro")
+    const placed=new Set(Object.values(C).map(c=>normCo(c.n)));
+    const unplaced=Object.values(R.byCounty).filter(x=>x.st===ab&&!placed.has(x.key));
+    unplaced.forEach(u=>list.push(Object.assign({name:u.label||u.key,unplaced:true},u)));
+    const S=R.byState[ab]||{n:0,ww:0};
+    $("mapHead").innerHTML='<b>'+esc(g.name)+' · '+S.n+' detection'+(S.n===1?"":"s")+(S.ww?' · '+S.ww+' wastewater site'+(S.ww===1?"":"s"):"")+'</b><span class="mine">'+(list.length?'Tap a county to filter the log':esc(winNone()))+'</span>';
+    $("mapBack").hidden=false;
+    $("legend").innerHTML='<span class="lg"><i style="background:var(--c-commercial)"></i>Commercial</span><span class="lg"><i style="background:var(--c-backyard)"></i>Backyard</span><span class="lg"><i style="background:var(--c-dairy)"></i>Dairy</span><span class="lg"><i style="background:var(--c-wild)"></i>Wild bird</span><span class="lg"><i style="background:var(--c-mammal)"></i>Mammal</span><span class="lg"><i class="ww"></i>Wastewater H5</span>';
+    list.sort((a,b)=>b.n-a.n||b.ww-a.ww||a.name.localeCompare(b.name));
+    const cl=$("countyList");
+    cl.hidden=!list.length;
+    cl.innerHTML='<div class="ctys">'+list.map(c=>{
+      const dots=Object.keys(c.cats).sort((a,b)=>SEV[b]-SEV[a]).map(k=>'<i style="background:var(--c-'+k+')" title="'+esc(CATS[k])+'"></i>').join("")+(c.ww?'<i class="ww" title="Wastewater H5"></i>':"");
+      const sub=Object.keys(c.cats).sort((a,b)=>SEV[b]-SEV[a]).map(k=>c.cats[k]+" "+CATS[k].toLowerCase()).concat(c.ev?[c.ev+" die-off event"+(c.ev===1?"":"s")]:[]).concat(c.ww?[c.ww+" wastewater site"+(c.ww===1?"":"s")]:[]).join(" · ");
+      return '<button type="button" class="ctyrow" data-cok="'+esc(c.key)+'" aria-pressed="'+(fCounty===c.key)+'"><span class="nm">'+esc(c.name)+(c.unplaced?' <span class="mine">(area)</span>':"")+'</span><span class="dots">'+dots+'</span><span class="sub">'+esc(sub)+'</span></button>';
+    }).join("")+'</div>';
+  }
+
+  const REGION={
+    CA:{file:"ca-provinces.json",label:"Canada",unit:"province",mineLabel:"My provinces",note:"CFIA reports by municipality; only province outlines are drawn."},
+    EU:{file:"eu-countries.json",label:"Europe",unit:"country",mineLabel:"My countries",note:"Not subdivided on this map; places are listed below."}
+  };
+  const regionGeo={}, regionLoading={};
+  const CAT_LEGEND=["commercial","backyard","dairy","wild","mammal","human","other"];
+  function catLegend(cats){
+    const show=CAT_LEGEND.filter(c=>cats[c]);
+    return (show.length?show:["commercial","backyard","dairy","wild","mammal"]).map(c=>'<span class="lg"><i style="background:var(--c-'+c+')"></i>'+esc(CATS[c])+'</span>').join("");
+  }
+  function renderRegion(R,key){
+    const cfg=REGION[key], svg=$("map");
+    const G=regionGeo[key];
+    if(!G){
+      regionLoading[key]=regionLoading[key]||fetch(cfg.file).then(r=>r.json()).then(j=>{regionGeo[key]=j;renderMap();}).catch(()=>{$("mapHead").innerHTML='<b>'+cfg.label+' map unavailable</b><span class="mine">The map data didn\'t load. Pull down to reload.</span>';});
+      svg.innerHTML="";$("mapHead").innerHTML='<b>'+cfg.label+'</b><span class="mine">Loading map…</span>';return;
+    }
+    const P=G.areas||G.provinces;
+    const vb=String(G.viewBox).split(/\s+/).map(Number);
+    const sel=mapState&&P[mapState]?mapState:null;
+    if(sel&&key==="EU")loadSub(sel);
+    const T=(sel&&key==="EU"&&SUB[sel])||null;
+    const subPending=!!(sel&&key==="EU"&&!T&&SUB_CODES.has(sel)&&!subFailed[sel]);
+    let vx=vb[0],vy=vb[1],vw=vb[2],vh=vb[3];
+    if(sel){
+      const [x0,y0,x1,y1]=(T&&T.bb)||P[sel].bbox;const pad=Math.max(x1-x0,y1-y0)*0.14+4;
+      let w=(x1-x0)+pad*2,hh=(y1-y0)+pad*2;let ar=vb[2]/vb[3];
+      // tall countries (Italy, Norway, Portugal, the UK...) get a taller frame, up to 4:5
+      if(key==="EU"){ar=Math.max(0.8,Math.min(ar,w/hh));svg.parentElement.style.aspectRatio=String(Math.round(ar*1000)/1000);}
+      if(w/hh<ar)w=hh*ar;else hh=w/ar;
+      vx=(x0+x1)/2-w/2;vy=(y0+y1)/2-hh/2;vw=w;vh=hh;
+    }
+    svg.setAttribute("viewBox",[vx,vy,vw,vh].map(v=>Math.round(v*1000)/1000).join(" "));
+    const k=vw/vb[2];
+    const sw=(1.1*k).toFixed(4), swMine=(2.2*k).toFixed(4);
+    let h=G.context?'<path class="ctx" d="'+G.context+'" style="stroke-width:'+(0.6*k).toFixed(4)+'"/>':"";
+    let tot=0;
+    const rank=a=>a===sel?2:mine.includes(a)?1:0;
+    Object.keys(P).sort((a,b)=>rank(a)-rank(b)).forEach(ab=>{
+      const S=R.byState[ab]||{n:0,ev:0,ww:0};tot+=S.n;
+      if(T&&ab===sel)return; // drawn below as subunits
+      const isMine=mine.includes(ab);
+      if(T){h+='<path class="st nb" d="'+P[ab].d+'" data-st="'+ab+'" tabindex="-1" role="button" style="stroke-width:'+(0.8*k).toFixed(4)+'" aria-label="'+esc(P[ab].name)+'"><title>'+esc(P[ab].name)+' · '+S.n+'</title></path>';return;}
+      h+='<path class="st l'+lvl(S.n+(S.ev||0))+(isMine?" mine":"")+(ab===sel?" sel":"")+'" d="'+P[ab].d+'" data-st="'+ab+'" tabindex="0" role="button" style="stroke-width:'+(ab===sel||isMine?swMine:sw)+'" aria-label="'+esc(P[ab].name)+': '+S.n+' detection'+(S.n===1?"":"s")+'"><title>'+esc(P[ab].name)+' · '+S.n+'</title></path>';
+    });
+    if(T){
+      const swU=(0.6*k).toFixed(4), swSel=(2.2*k).toFixed(4);
+      Object.keys(T.units).sort((a,b)=>(fCounty==="@"+a?1:0)-(fCounty==="@"+b?1:0)).forEach(u=>{
+        const U=T.units[u];if(!U.d)return;
+        const ck="@"+u, hit=R.byCounty[sel+"|"+ck];
+        let cls="cty sub",css="stroke-width:"+(hit&&fCounty===ck?swSel:swU);
+        if(hit){cls+=" hit";const tc=topCat(hit.cats);if(tc)css+=";fill:var(--c-"+tc+")";if(fCounty===ck)cls+=" sel";}
+        h+='<path class="'+cls+'" style="'+css+'" d="'+U.d+'" data-co="'+esc(ck)+'" tabindex="'+(hit?"0":"-1")+'" role="button" aria-label="'+esc(U.n)+(hit?': '+hit.n+' detection'+(hit.n===1?"":"s"):"")+'"><title>'+esc(U.n)+(hit?' · '+hit.n:"")+'</title></path>';
+      });
+      if(T.mesh)h+='<path class="pmesh" d="'+T.mesh+'" style="stroke-width:'+(1.1*k).toFixed(4)+'"/>';
+      if(T.outline)h+='<path class="cout" d="'+T.outline+'" style="stroke-width:'+(1.2*k).toFixed(4)+'"/>';
+      if(fCounty&&T.units[fCounty.slice(1)]&&T.units[fCounty.slice(1)].d)h+='<path class="cout" d="'+T.units[fCounty.slice(1)].d+'" style="stroke-width:'+swSel+';stroke-opacity:1"/>';
+    }
+    // larger tap targets for very small countries (Malta, Luxembourg)
+    Object.keys(P).forEach(ab=>{
+      const a=P[ab];if(!a.dot)return;if(T&&ab===sel)return;const S=R.byState[ab]||{n:0,ev:0};
+      h+='<circle class="st '+(T?"nb":'l'+lvl(S.n+(S.ev||0))+(mine.includes(ab)?" mine":"")+(ab===sel?" sel":""))+'" cx="'+a.dot[0]+'" cy="'+a.dot[1]+'" r="'+(7*k).toFixed(3)+'" data-st="'+ab+'" tabindex="'+(T?"-1":"0")+'" role="button" style="stroke-width:'+(T?(0.8*k).toFixed(4):swMine)+'" aria-label="'+esc(a.name)+'"><title>'+esc(a.name)+'</title></circle>';
+    });
+    svg.innerHTML=h;
+    if(sel){
+      const g=P[sel];const S=R.byState[sel]||{n:0,ev:0,ww:0};
+      const list=Object.values(R.byCounty).filter(x=>x.st===sel).map(x=>{
+        const u=T&&String(x.key).charAt(0)==="@"?T.units[String(x.key).slice(1)]:null;
+        return Object.assign({name:x.label||x.key,unplaced:!!T&&!u&&x.key!=="(whole country)",offmap:!!(u&&!u.d)},x);
+      });
+      list.sort((a,b)=>b.n-a.n||a.name.localeCompare(b.name));
+      const allCats={};list.forEach(c=>Object.keys(c.cats).forEach(kk=>{allCats[kk]=1;}));
+      const hint=T?(list.length?'Tap '+(/^[aeiou]/i.test(T.unit)?'an ':'a ')+esc(T.unit)+' to filter the log':esc(winNone())):subPending?'Loading '+esc(g.name)+' map…':(list.length?'Tap a place to filter the log':esc(winNone()));
+      $("mapHead").innerHTML='<b>'+esc(g.name)+' · '+S.n+' detection'+(S.n===1?"":"s")+'</b><span class="mine">'+hint+'</span>';
+      $("mapBack").hidden=false;
+      $("legend").innerHTML=T?(catLegend(allCats)+'<span class="mine">'+esc(T.note)+'</span>'):('<span class="lg"><span class="ramp"><i style="background:var(--chip)"></i><i style="background:var(--m1)"></i><i style="background:var(--m2)"></i><i style="background:var(--m3)"></i><i style="background:var(--m4)"></i></span>0 → 8+ detections</span>'+(subPending?'':'<span class="mine">'+esc(cfg.note)+'</span>'));
+      const cl=$("countyList");cl.hidden=!list.length;
+      cl.innerHTML='<div class="ctys">'+list.map(c=>{
+        const dots=Object.keys(c.cats).sort((a,b)=>SEV[b]-SEV[a]).map(kk=>'<i style="background:var(--c-'+kk+')" title="'+esc(CATS[kk])+'"></i>').join("");
+        const sub=Object.keys(c.cats).sort((a,b)=>SEV[b]-SEV[a]).map(kk=>c.cats[kk]+" "+CATS[kk].toLowerCase()).concat(c.ev?[c.ev+" die-off event"+(c.ev===1?"":"s")]:[]).join(" · ");
+        const tag=c.unplaced?' <span class="tag2">(area)</span>':c.offmap?' <span class="tag2">(off map)</span>':"";
+        return '<button type="button" class="ctyrow" data-cok="'+esc(c.key)+'" aria-pressed="'+(fCounty===c.key)+'"><span class="nm">'+esc(c.name)+tag+'</span><span class="dots">'+dots+'</span><span class="sub">'+esc(sub)+'</span></button>';
+      }).join("")+'</div>';
+      return;
+    }
+    $("mapHead").innerHTML='<b>'+cfg.label+' · '+esc(winHead(true))+' · '+tot+' detection'+(tot===1?'':'s')+'</b><span class="mine">Tap a '+cfg.unit+' for detail</span>';
+    $("mapBack").hidden=true;$("countyList").hidden=true;
+    $("legend").innerHTML='<span class="lg"><span class="ramp"><i style="background:var(--chip)"></i><i style="background:var(--m1)"></i><i style="background:var(--m2)"></i><i style="background:var(--m3)"></i><i style="background:var(--m4)"></i></span>0 → 8+ detections</span><span class="lg"><i style="background:none;border:2px solid var(--mine)"></i>'+cfg.mineLabel+'</span>';
+  }
+
+  function selectState(ab){
+    mapState=ab;fCounty=null;
+    if(ab){country=regionOf(ab);if(country!=="EU"){naCountry=country;save("hpai.country",country);}else loadSub(ab);fState=ab;save("hpai.fState",fState);}
+    renderFilters();renderLog();renderMap();
+    if(ab&&country==="US"&&!counties){
+      countiesLoading=countiesLoading||fetch("us-counties.json").then(r=>r.json()).then(j=>{counties=j;renderMap();}).catch(()=>{$("mapHead").innerHTML='<b>'+esc(geo.states[ab].name)+'</b><span class="mine">County shapes didn\'t load. Pull down to reload.</span>';});
+    }
+  }
+
+  fetch("us-states.json").then(r=>r.json()).then(j=>{geo=j;renderMap();}).catch(()=>{$("mapHead").innerHTML='<b>Map unavailable</b><span class="mine">The map data didn\'t load. Pull down to reload.</span>';});
+
+  /* ---------- My states sheet ---------- */
+  const PRESETS={licensed:["AZ","SD","UT","ID","MO","KS"],central:["MT","ND","SD","WY","NE","CO","KS","OK","NM","TX","AB","SK","MB","NT","NU"]};
+  let mineQ="";
+  function renderMineList(){
+    const el=$("mineList");if(!el)return;
+    const byState={};rows.forEach(r=>{if(r.state)byState[r.state]=(byState[r.state]||0)+1;});
+    const q=mineQ.trim().toLowerCase();
+    const opt=s=>{
+      const hit=!q||s.toLowerCase().startsWith(q)||codeLabel(s).toLowerCase().startsWith(q)||STATES[s].toLowerCase().includes(q);
+      return '<button type="button" role="checkbox" class="opt" data-toggle="'+s+'" aria-checked="'+mine.includes(s)+'"'+(hit?"":" hidden")+'><span class="box">'+(mine.includes(s)?"✓":"")+'</span><span>'+esc(STATES[s])+' <span class="code">'+esc(codeLabel(s))+'</span></span><span class="cnt">'+(byState[s]?byState[s]+" recent":"")+'</span></button>';
+    };
+    const byName=(a,b)=>STATES[a].localeCompare(STATES[b]);
+    let groups=[["United States",Object.keys(STATES).filter(isUS).sort(byName)],["Canada",Object.keys(PROV).sort(byName)],["Europe",Object.keys(EURO).sort(byName)]];
+    if(mode==="eu")groups=[groups[2],groups[0],groups[1]];
+    const pr=$("presets");if(pr)pr.hidden=(mode==="eu");
+    const any=s=>/<button type="button" role="checkbox" class="opt" data-toggle="[A-Z]+" aria-checked="(true|false)">/.test(s);
+    let out="",found=false;
+    groups.forEach(([label,codes])=>{const html=codes.map(opt).join("");if(any(html)){found=true;out+='<div class="grp">'+label+'</div>'+html;}});
+    el.innerHTML=found?out:'<div class="mine" style="padding:14px 0">No match for “'+esc(mineQ)+'”.</div>';
+    const n=mine.length;
+    $("mineCount").textContent=n?n+" selected: "+mine.map(codeLabel).join(", "):"Nothing selected yet";
+    const nMode=mine.filter(inMode).length;
+    const ob=$("openMine");if(ob){ob.textContent="★ "+(mode==="eu"?"My countries":"My states")+(nMode?" · "+nMode:"");}
+  }
+  function setMine(list){mine=Array.from(new Set(list.filter(x=>STATES[x])));save("hpai.mine",mine);renderFilters();renderLog();renderEvents();renderSignals();renderMap();}
+  function openMine(){const d=$("mineDlg");renderMineList();if(d.showModal&&!d.open)d.showModal();setTimeout(()=>{try{$("mineSearch").focus({preventScroll:true});}catch(e){}},50);}
+  $("mineSearch").addEventListener("input",e=>{mineQ=e.target.value;renderMineList();});
+  $("mineDlg").addEventListener("close",()=>{mineQ="";$("mineSearch").value="";});
+  $("mineDlg").addEventListener("click",e=>{if(e.target===e.currentTarget)e.currentTarget.close();});
+
+  function applyMode(){
+    document.querySelectorAll(".modeb").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.mode===mode)));
+    document.querySelectorAll(".srcgrp[data-mode]").forEach(g=>g.hidden=(g.dataset.mode!==mode));
+    const wl=$("whispersLink");if(wl)wl.hidden=(mode==="eu");
+    $("editMine").textContent=mode==="eu"?"Edit my countries":"Edit my states";
+    $("tiles").setAttribute("aria-label",(mode==="eu"?"EU and UK":"US and Canada")+" at a glance");
+  }
+  function setMode(m){
+    if(m!==mode){
+      mode=m;save("hpai.mode",mode);
+      fState="all";fCounty=null;mapState=null;save("hpai.fState","all");
+      country=mode==="eu"?"EU":naCountry;
+    }
+    applyMode();renderAll();
+  }
+  function renderAll(){renderSummary();renderFilters();renderLog();renderEvents();renderSignals();renderMap();}
+
+  function pickCounty(key){
+    fCounty=(fCounty===key)?null:key;
+    renderFilters();renderLog();renderMap();
+    if(fCounty)$("log-h").scrollIntoView({behavior:"smooth",block:"start"});
+  }
+  document.addEventListener("keydown",e=>{
+    if(e.key!=="Enter"&&e.key!==" ")return;
+    const p=e.target.closest&&e.target.closest("#map [data-st],#map [data-co]");
+    if(p){e.preventDefault();p.dispatchEvent(new MouseEvent("click",{bubbles:true}));}
+  });
+  document.addEventListener("click",e=>{
+    const p=e.target.closest("#map [data-st],#map [data-co]");
+    if(p){if(p.dataset.st)selectState(p.dataset.st);else if(p.classList.contains("hit"))pickCounty(p.dataset.co);return;}
+    const b=e.target.closest("button");if(!b)return;
+    if(b.id==="mapBack"){mapState=null;fCounty=null;renderFilters();renderLog();renderMap();return;}
+    if(b.dataset.country){naCountry=country=b.dataset.country;mapState=null;fCounty=null;save("hpai.country",country);renderMap();return;}
+    if(b.dataset.mode){setMode(b.dataset.mode);return;}
+    if(b.dataset.cok){pickCounty(b.dataset.cok);return;}
+    if(b.dataset.state){fState=b.dataset.state;fCounty=null;save("hpai.fState",fState);if(STATES[fState]){country=regionOf(fState);if(country!=="EU"){naCountry=country;save("hpai.country",country);}mapState=fState;}renderFilters();renderLog();renderMap();}
+    else if(b.dataset.cat){fCat=b.dataset.cat;save("hpai.fCat",fCat);renderFilters();renderLog();}
+    else if(b.dataset.clearco){fCounty=null;renderFilters();renderLog();renderMap();}
+    else if(b.dataset.toggle){const s=b.dataset.toggle;setMine(mine.includes(s)?mine.filter(x=>x!==s):mine.concat(s).sort());}
+    else if(b.dataset.preset){setMine(PRESETS[b.dataset.preset]||[]);}
+    else if(b.id==="mineClear"){setMine([]);}
+    else if(b.id==="editMine"||b.id==="openMine"){openMine();}
+  });
+
+  applyMode();renderSummary();renderSignals();renderFilters();
+
+  function loadData(){
+    fetch("data.json?t="+Date.now(),{cache:"no-store"}).then(r=>{if(!r.ok)throw new Error(String(r.status));return r.json();}).then(d=>{
+      summary=d.summary||null;signals=d.signals||null;europe=d.europe||null;
+      events=Array.isArray(d.events)?d.events:[];rows=Array.isArray(d.detections)?d.detections:[];
+      renderSummary();renderSignals();renderEvents();renderFilters();renderLog();renderMap();
+    }).catch(()=>{
+      if(rows.length)return;
+      $("stamp").textContent="Report unavailable";
+      $("log").innerHTML='<div class="empty"><b>The report didn\'t load.</b> Check your connection and reload the page.</div>';
+    });
+  }
+  loadData();
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden)loadData();});
+})();
+</script>
+
+</body></html>
